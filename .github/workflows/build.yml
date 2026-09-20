@@ -19,22 +19,22 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Clean & Rebuild Complete Android Project
+    - name: Setup PortalApp Project Source
       run: |
-        # Hapus file konfig lama yang bentrok
+        # Clean build workspace
         rm -rf app settings.gradle build.gradle gradle.properties
 
-        # 1. Buat gradle.properties (SOLUSI ERROR ANDROIDX)
+        # 1. Config gradle.properties
         cat << 'EOF' > gradle.properties
         android.useAndroidX=true
         android.enableJetifier=true
         EOF
 
-        # 2. Buat settings.gradle
+        # 2. Config settings.gradle
         echo "rootProject.name = 'PortalApp'" > settings.gradle
         echo "include ':app'" >> settings.gradle
 
-        # 3. Buat build.gradle (Root)
+        # 3. Config build.gradle (Root)
         cat << 'EOF' > build.gradle
         buildscript {
             repositories {
@@ -53,11 +53,12 @@ jobs:
         }
         EOF
 
-        # 4. Buat Folder & app/build.gradle
+        # Create Folder Structures
         mkdir -p app/src/main/java/com/portalapp/games
         mkdir -p app/src/main/res/layout
         mkdir -p app/src/main/res/values
 
+        # 4. Config app/build.gradle
         cat << 'EOF' > app/build.gradle
         plugins {
             id 'com.android.application'
@@ -75,19 +76,25 @@ jobs:
         }
         dependencies {
             implementation 'androidx.appcompat:appcompat:1.6.1'
+            implementation 'com.google.android.material:material:1.9.0'
         }
         EOF
 
-        # 5. Buat Manifest
+        # 5. Config AndroidManifest.xml
         cat << 'EOF' > app/src/main/AndroidManifest.xml
         <?xml version="1.0" encoding="utf-8"?>
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+            <uses-permission android:name="android.permission.INTERNET" />
+            <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
             <application
                 android:label="PortalApp"
+                android:usesCleartextTraffic="true"
                 android:theme="@style/Theme.AppCompat.Light.NoActionBar">
                 <activity
                     android:name="com.portalapp.games.MainActivity"
-                    android:exported="true">
+                    android:exported="true"
+                    android:configChanges="orientation|screenSize">
                     <intent-filter>
                         <action android:name="android.intent.action.MAIN" />
                         <category android:name="android.intent.category.LAUNCHER" />
@@ -97,20 +104,230 @@ jobs:
         </manifest>
         EOF
 
-        # 6. Buat Layout & Java
-        echo '<resources><string name="app_name">PortalApp</string></resources>' > app/src/main/res/values/strings.xml
-        echo '<?xml version="1.0" encoding="utf-8"?><RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent"/>' > app/src/main/res/layout/activity_main.xml
+        # 6. Config strings.xml
+        cat << 'EOF' > app/src/main/res/values/strings.xml
+        <resources>
+            <string name="app_name">PortalApp</string>
+        </resources>
+        EOF
 
+        # 7. Config UI Layout (activity_main.xml)
+        cat << 'EOF' > app/src/main/res/layout/activity_main.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#121212">
+
+            <!-- Top Action Bar Header -->
+            <LinearLayout
+                android:id="@+id/topBar"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:background="#1F1F1F"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="16dp"
+                android:elevation="4dp">
+
+                <ToggleButton
+                    android:id="@+id/btnTogglePower"
+                    android:layout_width="80dp"
+                    android:layout_height="38dp"
+                    android:textOn="ON"
+                    android:textOff="OFF"
+                    android:checked="true"
+                    android:textColor="#FFFFFF"
+                    android:backgroundTint="#2E7D32"/>
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <TextView
+                    android:id="@+id/btnSettings"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚙️"
+                    android:textSize="26sp"
+                    android:padding="8dp"
+                    android:clickable="true"
+                    android:focusable="true"/>
+
+            </LinearLayout>
+
+            <!-- Main Content WebView -->
+            <WebView
+                android:id="@+id/webView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_below="@id/topBar" />
+
+            <!-- OFF Mode Placeholder -->
+            <LinearLayout
+                android:id="@+id/offView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_below="@id/topBar"
+                android:background="#121212"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="PORTAL IS OFF"
+                    android:textColor="#888888"
+                    android:textSize="20sp"
+                    android:textStyle="bold"/>
+            </LinearLayout>
+
+        </RelativeLayout>
+        EOF
+
+        # 8. Config MainActivity.java (Porting Logic AdTurbo Extension)
         cat << 'EOF' > app/src/main/java/com/portalapp/games/MainActivity.java
         package com.portalapp.games;
+
+        import android.app.AlertDialog;
         import android.os.Bundle;
+        import android.view.View;
+        import android.webkit.WebSettings;
+        import android.webkit.WebView;
+        import android.webkit.WebViewClient;
+        import android.widget.Button;
+        import android.widget.LinearLayout;
+        import android.widget.Switch;
+        import android.widget.TextView;
+        import android.widget.ToggleButton;
         import androidx.appcompat.app.AppCompatActivity;
 
         public class MainActivity extends AppCompatActivity {
+
+            private WebView webView;
+            private ToggleButton btnTogglePower;
+            private TextView btnSettings;
+            private LinearLayout offView;
+
+            // AdTurbo extension states
+            private boolean isAdTurboActive = true;
+            private boolean isSpeedHackActive = true;
+
+            private final String TARGET_URL = "http://App.portalapp.games";
+
             @Override
             protected void onCreate(Bundle savedInstanceState) {
                 super.onCreate(savedInstanceState);
                 setContentView(R.layout.activity_main);
+
+                webView = findViewById(R.id.webView);
+                btnTogglePower = findViewById(R.id.btnTogglePower);
+                btnSettings = findViewById(R.id.btnSettings);
+                offView = findViewById(R.id.offView);
+
+                setupWebView();
+
+                btnTogglePower.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                    if (isChecked) {
+                        btnTogglePower.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF2E7D32));
+                        offView.setVisibility(View.GONE);
+                        webView.setVisibility(View.VISIBLE);
+                        if (webView.getUrl() == null) {
+                            webView.loadUrl(TARGET_URL);
+                        }
+                    } else {
+                        btnTogglePower.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFFC62828));
+                        webView.setVisibility(View.GONE);
+                        offView.setVisibility(View.VISIBLE);
+                    }
+                });
+
+                btnSettings.setOnClickListener(v -> showSettingsDialog());
+
+                webView.loadUrl(TARGET_URL);
+            }
+
+            private void setupWebView() {
+                WebSettings settings = webView.getSettings();
+                settings.setJavaScriptEnabled(true);
+                settings.setDomStorageEnabled(true);
+                settings.setDatabaseEnabled(true);
+                settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+
+                webView.setWebViewClient(new WebViewClient() {
+                    @Override
+                    public void onPageFinished(WebView view, String url) {
+                        super.onPageFinished(view, url);
+                        injectAdTurboExtensionEngine();
+                    }
+                });
+            }
+
+            private void injectAdTurboExtensionEngine() {
+                if (!isAdTurboActive) return;
+
+                String speedHackJs = isSpeedHackActive ?
+                    "window.HTMLMediaElement.prototype.play = (function(orig){" +
+                    "  return function(){ this.playbackRate = 2.5; return orig.apply(this, arguments); };" +
+                    "})(window.HTMLMediaElement.prototype.play);" : "";
+
+                String adTurboJs = "javascript:(function() {" +
+                    "  const selectors = ['[id*=\"google_ads\"]', '[class*=\"ad-container\"]', 'iframe[src*=\"ads\"]', '.ad-banner'];" +
+                    "  selectors.forEach(s => document.querySelectorAll(s).forEach(el => el.remove()));" +
+                    speedHackJs +
+                    "})();";
+
+                webView.evaluateJavascript(adTurboJs, null);
+            }
+
+            private void showSettingsDialog() {
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle("⚙️ Extension Settings");
+
+                LinearLayout layout = new LinearLayout(this);
+                layout.setOrientation(LinearLayout.VERTICAL);
+                layout.setPadding(50, 40, 50, 40);
+
+                Switch swAdTurbo = new Switch(this);
+                swAdTurbo.setText("AdTurbo Auto-Blocker");
+                swAdTurbo.setChecked(isAdTurboActive);
+                swAdTurbo.setPadding(0, 20, 0, 20);
+
+                Switch swSpeed = new Switch(this);
+                swSpeed.setText("SpeedHack (Boost Speed)");
+                swSpeed.setChecked(isSpeedHackActive);
+                swSpeed.setPadding(0, 20, 0, 40);
+
+                Button btnReload = new Button(this);
+                btnReload.setText("🔄 RELOAD");
+
+                layout.addView(swAdTurbo);
+                layout.addView(swSpeed);
+                layout.addView(btnReload);
+
+                builder.setView(layout);
+                AlertDialog dialog = builder.create();
+
+                swAdTurbo.setOnCheckedChangeListener((bv, checked) -> isAdTurboActive = checked);
+                swSpeed.setOnCheckedChangeListener((bv, checked) -> isSpeedHackActive = checked);
+
+                btnReload.setOnClickListener(v -> {
+                    webView.reload();
+                    dialog.dismiss();
+                });
+
+                dialog.show();
+            }
+
+            @Override
+            public void onBackPressed() {
+                if (webView.canGoBack()) {
+                    webView.goBack();
+                } else {
+                    super.onBackPressed();
+                }
             }
         }
         EOF
