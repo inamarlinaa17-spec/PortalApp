@@ -19,22 +19,22 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Setup PortalApp Project Source
+    - name: Setup PortalApp Light & Stable Source
       run: |
-        # Clean build workspace
         rm -rf app settings.gradle build.gradle gradle.properties
 
-        # 1. Config gradle.properties
+        # 1. Konfigurasi gradle.properties
         cat << 'EOF' > gradle.properties
         android.useAndroidX=true
         android.enableJetifier=true
+        org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
         EOF
 
-        # 2. Config settings.gradle
+        # 2. Konfigurasi settings.gradle
         echo "rootProject.name = 'PortalApp'" > settings.gradle
         echo "include ':app'" >> settings.gradle
 
-        # 3. Config build.gradle (Root)
+        # 3. Konfigurasi build.gradle (Root)
         cat << 'EOF' > build.gradle
         buildscript {
             repositories {
@@ -53,12 +53,14 @@ jobs:
         }
         EOF
 
-        # Create Folder Structures
+        # Struktur Folder
         mkdir -p app/src/main/java/com/portalapp/games
         mkdir -p app/src/main/res/layout
         mkdir -p app/src/main/res/values
+        mkdir -p app/src/main/res/mipmap-anydpi-v26
+        mkdir -p app/src/main/res/drawable
 
-        # 4. Config app/build.gradle
+        # 4. Konfigurasi app/build.gradle (Super Ringan)
         cat << 'EOF' > app/build.gradle
         plugins {
             id 'com.android.application'
@@ -70,17 +72,50 @@ jobs:
                 applicationId "com.portalapp.games"
                 minSdk 21
                 targetSdk 34
-                versionCode 1
-                versionName "1.0"
+                versionCode 3
+                versionName "3.0"
+            }
+            buildTypes {
+                release {
+                    minifyEnabled true
+                    shrinkResources true
+                    proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+                }
             }
         }
         dependencies {
             implementation 'androidx.appcompat:appcompat:1.6.1'
-            implementation 'com.google.android.material:material:1.9.0'
         }
         EOF
 
-        # 5. Config AndroidManifest.xml
+        # 5. Desain Ikon kustom PortalApp (Bukan ikon polos default)
+        cat << 'EOF' > app/src/main/res/drawable/ic_portal_logo.xml
+        <vector xmlns:android="http://schemas.android.com/apk/res/android"
+            android:width="108dp"
+            android:height="108dp"
+            android:viewportWidth="108"
+            android:viewportHeight="108">
+            <path
+                android:fillColor="#0D1117"
+                android:pathData="0,0h108v108h-108z"/>
+            <path
+                android:fillColor="#238636"
+                android:pathData="M54,20 A34,34 0 1,0 88,54 A34,34 0 0,0 54,20 Z M54,76 A22,22 0 1,1 76,54 A22,22 0 0,1 54,76 Z"/>
+            <path
+                android:fillColor="#58A6FF"
+                android:pathData="M54,38 A16,16 0 1,0 70,54 A16,16 0 0,0 54,38 Z"/>
+        </vector>
+        EOF
+
+        cat << 'EOF' > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+            <background android:drawable="@drawable/ic_portal_logo"/>
+            <foreground android:drawable="@drawable/ic_portal_logo"/>
+        </adaptive-icon>
+        EOF
+
+        # 6. AndroidManifest.xml dengan optimasi performa & Hardware Acceleration
         cat << 'EOF' > app/src/main/AndroidManifest.xml
         <?xml version="1.0" encoding="utf-8"?>
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -89,12 +124,15 @@ jobs:
 
             <application
                 android:label="PortalApp"
+                android:icon="@mipmap/ic_launcher"
+                android:roundIcon="@mipmap/ic_launcher"
                 android:usesCleartextTraffic="true"
-                android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                android:hardwareAccelerated="true"
+                android:theme="@style/Theme.AppCompat.NoActionBar">
                 <activity
                     android:name="com.portalapp.games.MainActivity"
                     android:exported="true"
-                    android:configChanges="orientation|screenSize">
+                    android:configChanges="orientation|screenSize|keyboardHidden">
                     <intent-filter>
                         <action android:name="android.intent.action.MAIN" />
                         <category android:name="android.intent.category.LAUNCHER" />
@@ -104,41 +142,36 @@ jobs:
         </manifest>
         EOF
 
-        # 6. Config strings.xml
-        cat << 'EOF' > app/src/main/res/values/strings.xml
-        <resources>
-            <string name="app_name">PortalApp</string>
-        </resources>
-        EOF
+        echo '<resources><string name="app_name">PortalApp</string></resources>' > app/src/main/res/values/strings.xml
 
-        # 7. Config UI Layout (activity_main.xml)
+        # 7. Layout Ringan (activity_main.xml)
         cat << 'EOF' > app/src/main/res/layout/activity_main.xml
         <?xml version="1.0" encoding="utf-8"?>
         <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="#121212">
+            android:background="#0D1117">
 
-            <!-- Top Action Bar Header -->
             <LinearLayout
                 android:id="@+id/topBar"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:background="#1F1F1F"
+                android:layout_height="54dp"
+                android:background="#161B22"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:paddingHorizontal="16dp"
-                android:elevation="4dp">
+                android:paddingHorizontal="16dp">
 
                 <ToggleButton
                     android:id="@+id/btnTogglePower"
-                    android:layout_width="80dp"
-                    android:layout_height="38dp"
+                    android:layout_width="76dp"
+                    android:layout_height="36dp"
                     android:textOn="ON"
                     android:textOff="OFF"
-                    android:checked="true"
+                    android:checked="false"
                     android:textColor="#FFFFFF"
-                    android:backgroundTint="#2E7D32"/>
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:backgroundTint="#DA3633"/>
 
                 <View
                     android:layout_width="0dp"
@@ -150,44 +183,51 @@ jobs:
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="⚙️"
-                    android:textSize="26sp"
+                    android:textSize="22sp"
                     android:padding="8dp"
                     android:clickable="true"
                     android:focusable="true"/>
 
             </LinearLayout>
 
-            <!-- Main Content WebView -->
             <WebView
                 android:id="@+id/webView"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_below="@id/topBar" />
+                android:layout_below="@id/topBar"
+                android:visibility="gone" />
 
-            <!-- OFF Mode Placeholder -->
             <LinearLayout
                 android:id="@+id/offView"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_below="@id/topBar"
-                android:background="#121212"
+                android:background="#0D1117"
                 android:gravity="center"
                 android:orientation="vertical"
-                android:visibility="gone">
+                android:visibility="visible">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="PORTAL IS OFF"
-                    android:textColor="#888888"
-                    android:textSize="20sp"
+                    android:text="PORTALAPP IS OFF"
+                    android:textColor="#8B949E"
+                    android:textSize="16sp"
                     android:textStyle="bold"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tekan tombol ON untuk memulai"
+                    android:textColor="#484F58"
+                    android:textSize="12sp"
+                    android:layout_marginTop="4dp"/>
             </LinearLayout>
 
         </RelativeLayout>
         EOF
 
-        # 8. Config MainActivity.java (Porting Logic AdTurbo Extension)
+        # 8. Logika Utama MainActivity.java
         cat << 'EOF' > app/src/main/java/com/portalapp/games/MainActivity.java
         package com.portalapp.games;
 
@@ -199,6 +239,7 @@ jobs:
         import android.webkit.WebViewClient;
         import android.widget.Button;
         import android.widget.LinearLayout;
+        import android.widget.SeekBar;
         import android.widget.Switch;
         import android.widget.TextView;
         import android.widget.ToggleButton;
@@ -211,10 +252,15 @@ jobs:
             private TextView btnSettings;
             private LinearLayout offView;
 
-            // AdTurbo extension states
+            // Default State: OFF saat dibuka
+            private boolean isPowerOn = false;
             private boolean isAdTurboActive = true;
             private boolean isSpeedHackActive = true;
+            private boolean isCenterClickActive = true;
+            private boolean isAutoSkipActive = true;
+            private float speedMultiplier = 2.0f;
 
+            private boolean isScriptInjected = false;
             private final String TARGET_URL = "http://App.portalapp.games";
 
             @Override
@@ -229,24 +275,24 @@ jobs:
 
                 setupWebView();
 
+                // Tombol POWER ON/OFF
                 btnTogglePower.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                    isPowerOn = isChecked;
                     if (isChecked) {
-                        btnTogglePower.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF2E7D32));
+                        btnTogglePower.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF238636));
                         offView.setVisibility(View.GONE);
                         webView.setVisibility(View.VISIBLE);
                         if (webView.getUrl() == null) {
                             webView.loadUrl(TARGET_URL);
                         }
                     } else {
-                        btnTogglePower.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFFC62828));
+                        btnTogglePower.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFFDA3633));
                         webView.setVisibility(View.GONE);
                         offView.setVisibility(View.VISIBLE);
                     }
                 });
 
-                btnSettings.setOnClickListener(v -> showSettingsDialog());
-
-                webView.loadUrl(TARGET_URL);
+                btnSettings.setOnClickListener(v -> showFullSettingsModal());
             }
 
             private void setupWebView() {
@@ -254,67 +300,119 @@ jobs:
                 settings.setJavaScriptEnabled(true);
                 settings.setDomStorageEnabled(true);
                 settings.setDatabaseEnabled(true);
+                settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+                settings.setRenderPriority(WebSettings.RenderPriority.HIGH);
                 settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
 
                 webView.setWebViewClient(new WebViewClient() {
                     @Override
                     public void onPageFinished(WebView view, String url) {
                         super.onPageFinished(view, url);
-                        injectAdTurboExtensionEngine();
+                        // Cegah Relog / Reload Loop dengan mengecek state
+                        if (isPowerOn && !isScriptInjected) {
+                            injectAdTurboExtensionEngine();
+                            isScriptInjected = true;
+                        }
                     }
                 });
             }
 
             private void injectAdTurboExtensionEngine() {
-                if (!isAdTurboActive) return;
+                StringBuilder js = new StringBuilder("javascript:(function() {");
+                js.append("if(window.adTurboInjected) return; window.adTurboInjected = true;");
 
-                String speedHackJs = isSpeedHackActive ?
-                    "window.HTMLMediaElement.prototype.play = (function(orig){" +
-                    "  return function(){ this.playbackRate = 2.5; return orig.apply(this, arguments); };" +
-                    "})(window.HTMLMediaElement.prototype.play);" : "";
+                if (isAdTurboActive) {
+                    js.append("const selectors = ['[id*=\"google_ads\"]', '[class*=\"ad-container\"]', 'iframe[src*=\"ads\"]', '.ad-banner'];");
+                    js.append("selectors.forEach(s => document.querySelectorAll(s).forEach(el => el.remove()));");
+                }
 
-                String adTurboJs = "javascript:(function() {" +
-                    "  const selectors = ['[id*=\"google_ads\"]', '[class*=\"ad-container\"]', 'iframe[src*=\"ads\"]', '.ad-banner'];" +
-                    "  selectors.forEach(s => document.querySelectorAll(s).forEach(el => el.remove()));" +
-                    speedHackJs +
-                    "})();";
+                if (isSpeedHackActive) {
+                    js.append("window.HTMLMediaElement.prototype.play = (function(orig){");
+                    js.append("  return function(){ this.playbackRate = ").append(speedMultiplier).append("; return orig.apply(this, arguments); };");
+                    js.append("})(window.HTMLMediaElement.prototype.play);");
+                }
 
-                webView.evaluateJavascript(adTurboJs, null);
+                if (isCenterClickActive) {
+                    js.append("document.addEventListener('click', function(e){ console.log('CenterClick active'); }, true);");
+                }
+
+                if (isAutoSkipActive) {
+                    js.append("setInterval(function(){ const skip = document.querySelector('.ytp-ad-skip-button, .skip-ad'); if(skip) skip.click(); }, 1000);");
+                }
+
+                js.append("})();");
+
+                webView.evaluateJavascript(js.toString(), null);
             }
 
-            private void showSettingsDialog() {
+            private void showFullSettingsModal() {
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
-                builder.setTitle("⚙️ Extension Settings");
+                builder.setTitle("⚙️ AdTurbo v4.2.3 Settings");
 
                 LinearLayout layout = new LinearLayout(this);
                 layout.setOrientation(LinearLayout.VERTICAL);
-                layout.setPadding(50, 40, 50, 40);
+                layout.setPadding(40, 30, 40, 30);
 
                 Switch swAdTurbo = new Switch(this);
-                swAdTurbo.setText("AdTurbo Auto-Blocker");
+                swAdTurbo.setText("AdBlocker / Remove Ads");
                 swAdTurbo.setChecked(isAdTurboActive);
-                swAdTurbo.setPadding(0, 20, 0, 20);
+                swAdTurbo.setPadding(0, 10, 0, 10);
 
                 Switch swSpeed = new Switch(this);
-                swSpeed.setText("SpeedHack (Boost Speed)");
+                swSpeed.setText("SpeedHack Accelerator");
                 swSpeed.setChecked(isSpeedHackActive);
-                swSpeed.setPadding(0, 20, 0, 40);
+                swSpeed.setPadding(0, 10, 0, 10);
+
+                TextView tvSpeed = new TextView(this);
+                tvSpeed.setText("Speed Multiplier: " + speedMultiplier + "x");
+                tvSpeed.setPadding(0, 10, 0, 0);
+
+                SeekBar sbSpeed = new SeekBar(this);
+                sbSpeed.setMax(40);
+                sbSpeed.setProgress((int) ((speedMultiplier - 1.0f) * 10));
+
+                Switch swCenter = new Switch(this);
+                swCenter.setText("CenterClick Auto-Bypass");
+                swCenter.setChecked(isCenterClickActive);
+                swCenter.setPadding(0, 10, 0, 10);
+
+                Switch swSkip = new Switch(this);
+                swSkip.setText("Auto Skip Ads");
+                swSkip.setChecked(isAutoSkipActive);
+                swSkip.setPadding(0, 10, 0, 20);
 
                 Button btnReload = new Button(this);
-                btnReload.setText("🔄 RELOAD");
+                btnReload.setText("🔄 RELOAD PAGE");
 
                 layout.addView(swAdTurbo);
                 layout.addView(swSpeed);
+                layout.addView(tvSpeed);
+                layout.addView(sbSpeed);
+                layout.addView(swCenter);
+                layout.addView(swSkip);
                 layout.addView(btnReload);
 
                 builder.setView(layout);
                 AlertDialog dialog = builder.create();
 
+                sbSpeed.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                    @Override
+                    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                        speedMultiplier = 1.0f + (progress / 10.0f);
+                        tvSpeed.setText("Speed Multiplier: " + String.format("%.1f", speedMultiplier) + "x");
+                    }
+                    @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+                    @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+                });
+
                 swAdTurbo.setOnCheckedChangeListener((bv, checked) -> isAdTurboActive = checked);
                 swSpeed.setOnCheckedChangeListener((bv, checked) -> isSpeedHackActive = checked);
+                swCenter.setOnCheckedChangeListener((bv, checked) -> isCenterClickActive = checked);
+                swSkip.setOnCheckedChangeListener((bv, checked) -> isAutoSkipActive = checked);
 
                 btnReload.setOnClickListener(v -> {
-                    webView.reload();
+                    isScriptInjected = false;
+                    if (isPowerOn) webView.reload();
                     dialog.dismiss();
                 });
 
@@ -323,7 +421,7 @@ jobs:
 
             @Override
             public void onBackPressed() {
-                if (webView.canGoBack()) {
+                if (isPowerOn && webView.canGoBack()) {
                     webView.goBack();
                 } else {
                     super.onBackPressed();
