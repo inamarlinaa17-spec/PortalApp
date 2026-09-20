@@ -19,11 +19,77 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
+    - name: Generate Essential Project Files
+      run: |
+        # Buat struktur folder lengkap
+        mkdir -p app/src/main/java/com/portalapp/games
+        mkdir -p app/src/main/res/layout
+        mkdir -p app/src/main/res/values
+
+        # Buat AndroidManifest.xml
+        cat << 'EOF' > app/src/main/AndroidManifest.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+            package="com.portalapp.games">
+            <application
+                android:allowBackup="true"
+                android:label="PortalApp"
+                android:supportsRtl="true"
+                android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                <activity
+                    android:name=".MainActivity"
+                    android:exported="true">
+                    <intent-filter>
+                        <action android:name="android.intent.action.MAIN" />
+                        <category android:name="android.intent.category.LAUNCHER" />
+                    </intent-filter>
+                </activity>
+            </application>
+        </manifest>
+        EOF
+
+        # Buat strings.xml
+        cat << 'EOF' > app/src/main/res/values/strings.xml
+        <resources>
+            <string name="app_name">PortalApp</string>
+        </resources>
+        EOF
+
+        # Buat activity_main.xml
+        cat << 'EOF' > app/src/main/res/layout/activity_main.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Welcome to PortalApp"
+                android:layout_centerInParent="true"/>
+        </RelativeLayout>
+        EOF
+
+        # Buat MainActivity.java
+        cat << 'EOF' > app/src/main/java/com/portalapp/games/MainActivity.java
+        package com.portalapp.games;
+
+        import android.os.Bundle;
+        import androidx.appcompat.app.AppCompatActivity;
+
+        public class MainActivity extends AppCompatActivity {
+            @Override
+            protected void onCreate(Bundle savedInstanceState) {
+                super.onCreate(savedInstanceState);
+                setContentView(R.layout.activity_main);
+            }
+        }
+        EOF
+
     - name: Build Android APK
       uses: gradle/gradle-build-action@v2
       with:
         gradle-version: '8.1.1'
-        arguments: assembleDebug --stacktrace --info
+        arguments: assembleDebug
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
