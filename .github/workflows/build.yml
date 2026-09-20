@@ -19,43 +19,10 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Auto-Fix & Generate Perfect Gradle Structure
-      run: |
-        # 1. Reset Root build.gradle
-        cat << 'EOF' > build.gradle
-        buildscript {
-            repositories {
-                google()
-                mavenCentral()
-            }
-            dependencies {
-                classpath 'com.android.tools.build:gradle:8.1.1'
-            }
-        }
-        allprojects {
-            repositories {
-                google()
-                mavenCentral()
-            }
-        }
-        task clean(type: Delete) {
-            delete rootProject.buildDir
-        }
-        EOF
-
-        # 2. Reset settings.gradle
-        cat << 'EOF' > settings.gradle
-        rootProject.name = "PortalApp"
-        include ':app'
-        EOF
-
-    - name: Setup Gradle Wrapper
-      run: |
-        gradle wrapper --gradle-version 8.1.1
-        chmod +x gradlew
-
-    - name: Build APK Debug
-      run: ./gradlew assembleDebug --stacktrace
+    - name: Build Android APK
+      uses: gradle/gradle-build-action@v2
+      with:
+        arguments: assembleDebug
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
