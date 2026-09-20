@@ -19,25 +19,74 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Generate Essential Project Files
+    - name: Clean & Rebuild Complete Android Project
       run: |
-        # Buat struktur folder lengkap
+        # Hapus file konfig lama yang bentrok
+        rm -rf app settings.gradle build.gradle gradle.properties
+
+        # 1. Buat gradle.properties (SOLUSI ERROR ANDROIDX)
+        cat << 'EOF' > gradle.properties
+        android.useAndroidX=true
+        android.enableJetifier=true
+        EOF
+
+        # 2. Buat settings.gradle
+        echo "rootProject.name = 'PortalApp'" > settings.gradle
+        echo "include ':app'" >> settings.gradle
+
+        # 3. Buat build.gradle (Root)
+        cat << 'EOF' > build.gradle
+        buildscript {
+            repositories {
+                google()
+                mavenCentral()
+            }
+            dependencies {
+                classpath 'com.android.tools.build:gradle:8.1.1'
+            }
+        }
+        allprojects {
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
+        EOF
+
+        # 4. Buat Folder & app/build.gradle
         mkdir -p app/src/main/java/com/portalapp/games
         mkdir -p app/src/main/res/layout
         mkdir -p app/src/main/res/values
 
-        # Buat AndroidManifest.xml
+        cat << 'EOF' > app/build.gradle
+        plugins {
+            id 'com.android.application'
+        }
+        android {
+            namespace 'com.portalapp.games'
+            compileSdk 34
+            defaultConfig {
+                applicationId "com.portalapp.games"
+                minSdk 21
+                targetSdk 34
+                versionCode 1
+                versionName "1.0"
+            }
+        }
+        dependencies {
+            implementation 'androidx.appcompat:appcompat:1.6.1'
+        }
+        EOF
+
+        # 5. Buat Manifest
         cat << 'EOF' > app/src/main/AndroidManifest.xml
         <?xml version="1.0" encoding="utf-8"?>
-        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-            package="com.portalapp.games">
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android">
             <application
-                android:allowBackup="true"
                 android:label="PortalApp"
-                android:supportsRtl="true"
                 android:theme="@style/Theme.AppCompat.Light.NoActionBar">
                 <activity
-                    android:name=".MainActivity"
+                    android:name="com.portalapp.games.MainActivity"
                     android:exported="true">
                     <intent-filter>
                         <action android:name="android.intent.action.MAIN" />
@@ -48,31 +97,12 @@ jobs:
         </manifest>
         EOF
 
-        # Buat strings.xml
-        cat << 'EOF' > app/src/main/res/values/strings.xml
-        <resources>
-            <string name="app_name">PortalApp</string>
-        </resources>
-        EOF
+        # 6. Buat Layout & Java
+        echo '<resources><string name="app_name">PortalApp</string></resources>' > app/src/main/res/values/strings.xml
+        echo '<?xml version="1.0" encoding="utf-8"?><RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent"/>' > app/src/main/res/layout/activity_main.xml
 
-        # Buat activity_main.xml
-        cat << 'EOF' > app/src/main/res/layout/activity_main.xml
-        <?xml version="1.0" encoding="utf-8"?>
-        <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Welcome to PortalApp"
-                android:layout_centerInParent="true"/>
-        </RelativeLayout>
-        EOF
-
-        # Buat MainActivity.java
         cat << 'EOF' > app/src/main/java/com/portalapp/games/MainActivity.java
         package com.portalapp.games;
-
         import android.os.Bundle;
         import androidx.appcompat.app.AppCompatActivity;
 
